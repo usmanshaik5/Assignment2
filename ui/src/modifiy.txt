@@ -1,0 +1,326 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import backgroundImage from './ZTP.jpg';
+import Chatbot from './Chatbot'; 
+
+const App = () => {
+    const [ruleInput, setRuleInput] = useState('');
+    const [secondRuleInput, setSecondRuleInput] = useState('');
+    const [combinedRuleIndices, setCombinedRuleIndices] = useState([]);
+    const [astOutput, setAstOutput] = useState(null);
+    const [attributes, setAttributes] = useState({
+        age: '',
+        department: '',
+        salary: '',
+        experience: ''
+    });
+    const [evaluationResult, setEvaluationResult] = useState(null);
+    const [createdRules, setCreatedRules] = useState([]);
+    const [isChatbotVisible, setChatbotVisible] = useState(false);
+    const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+    const [editRule, setEditRule] = useState(null); // State to hold the rule being edited
+
+    const toggleChatbot = () => {
+        setIsChatbotOpen(prevState => !prevState);
+    };
+
+    const handleOpenChatbot = () => {
+        setChatbotVisible(true);
+    };
+    
+    const handleCloseChatbot = () => {
+        setChatbotVisible(false);
+    };
+
+    useEffect(() => {
+        const fetchCreatedRules = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/rules');
+                setCreatedRules(response.data);
+            } catch (error) {
+                console.error('Error fetching rules:', error);
+                alert('An error occurred while fetching the rules.');
+            }
+        };
+        fetchCreatedRules();
+    }, []);
+
+    const handleCreateFirstRule = async () => {
+        await createRule(ruleInput, 'first');
+    };
+
+    const createRule = async (ruleString, ruleType) => {
+        try {
+            const response = await axios.post('http://localhost:5000/rules/create', { rule_string: ruleString });
+            setAstOutput(response.data);
+            setCreatedRules((prevRules) => [...prevRules, response.data]);
+        } catch (error) {
+            console.error(`Error creating ${ruleType} rule:`, error);
+            alert(`Error occurred while creating the ${ruleType} rule.`);
+        }
+    };
+
+    const handleEditRule = (rule) => {
+        setEditRule(rule);
+        setRuleInput(rule.rule_string); // Populate input with the rule being edited
+    };
+
+    const handleUpdateRule = async () => {
+        if (!editRule) return;
+
+        try {
+            const response = await axios.put(`http://localhost:5000/rules/update/${editRule.id}`, { rule_string: ruleInput });
+            setCreatedRules((prevRules) => 
+                prevRules.map((r) => (r.id === editRule.id ? response.data : r))
+            );
+            setEditRule(null);
+            setRuleInput(''); // Clear input after update
+        } catch (error) {
+            console.error('Error updating rule:', error);
+            alert('An error occurred while updating the rule.');
+        }
+    };
+
+    const handleDeleteRule = async (id) => {
+        try {
+            await axios.delete(`http://localhost:5000/rules/delete/${id}`);
+            setCreatedRules((prevRules) => prevRules.filter((rule) => rule.id !== id));
+            alert('Rule deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting rule:', error);
+            alert('An error occurred while deleting the rule.');
+        }
+    };
+
+    const handleSaveRule = async (rule) => {
+        if (!rule) {
+            alert('Please create a rule before saving.');
+            return;
+        }
+
+        try {
+            await axios.post('http://localhost:5000/rules/save', { rule_string: rule });
+            alert('Rule saved successfully!');
+        } catch (error) {
+            console.error('Error saving rule:', error);
+            alert('An error occurred while saving the rule.');
+        }
+    };
+
+    const handleEvaluateRule = async () => {
+        if (!astOutput || astOutput === '') {
+            alert('Please create a rule before evaluating.');
+            return;
+        }
+    
+        if (!attributes.age || !attributes.department || !attributes.salary || !attributes.experience) {
+            alert('Please fill in all attributes before evaluating.');
+            return;
+        }
+    
+        try {
+            const response = await axios.post('http://localhost:5000/rules/evaluate', {
+                attributes: {
+                    age: attributes.age,
+                    department: attributes.department,
+                    salary: attributes.salary,
+                    experience: attributes.experience
+                },
+                rule: astOutput
+            });
+            if (response.data && response.data.result !== undefined) {
+                setEvaluationResult(response.data.result);
+            } else {
+                alert('No valid evaluation result returned from the server.');
+            }
+        } catch (error) {
+            console.error('Error evaluating rule:', error);
+            alert('An error occurred while evaluating the rule.');
+        }
+    };
+
+    const handleInputChange = (field, value) => {
+        setAttributes((prevAttributes) => ({
+            ...prevAttributes,
+            [field]: value
+        }));
+    };
+
+    const toggleRuleSelection = (index) => {
+        setCombinedRuleIndices((prevSelected) => {
+            if (prevSelected.includes(index)) {
+                return prevSelected.filter((i) => i !== index);
+            } else {
+                return [...prevSelected, index];
+            }
+        });
+    };
+
+    const containerStyle = {
+        padding: '20px',
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        minHeight: '100vh',
+        width: '100vw',
+        margin: 0,
+        position: 'absolute',
+        top: -10,
+        left: 0,
+        color: 'white',
+        fontFamily: 'Arial, sans-serif',
+        lineHeight: '1.6',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        filter: 'brightness(0.7)'
+    };
+
+    const formElementStyle = {
+        marginBottom: '10px',
+        padding: '15px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        width: '300px',
+        textAlign: 'center',
+    };
+
+    const buttonStyle = {
+        marginTop: '10px',
+        padding: '10px 20px',
+        borderRadius: '5px',
+        border: 'none',
+        backgroundColor: '#007BFF',
+        color: 'white',
+        cursor: 'pointer',
+        width: '100%',
+    };
+
+    const rowStyle = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: '30px',
+        width: '80%',
+        marginBottom: '20px',
+    };
+
+    const leftColumnStyle = {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+    };
+
+    const rightColumnStyle = {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '10px',
+        marginTop: '-30px',
+    };
+
+    const ruleListStyle = {
+        marginTop: '20px',
+        width: '600px',
+    };
+
+    return (
+        <div style={containerStyle}>
+            <div style={{ marginLeft: '1200px', marginTop: '45px' }}>
+                <button style={buttonStyle} onClick={handleOpenChatbot}>
+                    {isChatbotOpen ? 'Close Chatbot' : 'Open Chatbot'}
+                </button>
+                {isChatbotVisible && <Chatbot onClose={handleCloseChatbot} />}
+            </div>
+            <h1 style={{ textAlign: 'center', fontSize: '32px', marginTop: '-65px', marginBottom: '45px', color: 'black' }}>Rule Engine</h1>
+           
+            {/* Row for Entering Rules and Combining Rules */}
+            <div style={rowStyle}>
+                {/* Left column for rule inputs */}
+                <div style={leftColumnStyle}>
+                    <div style={formElementStyle}>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'white' }}>
+                            Enter First Rule:
+                            <textarea
+                                style={{ width: '90%', padding: '10px', borderRadius: '5px', border: 'none', marginBottom: '10px' }}
+                                rows="4"
+                                value={ruleInput}
+                                onChange={(e) => setRuleInput(e.target.value)}
+                            />
+                        </label>
+                        <button style={buttonStyle} onClick={handleCreateFirstRule}>Create First Rule</button>
+                        <button style={buttonStyle} onClick={() => handleSaveRule(ruleInput)}>Save First Rule</button>
+                    </div>
+
+                    <div style={formElementStyle}>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'white' }}>
+                            Enter Second Rule:
+                            <textarea
+                                style={{ width: '90%', padding: '10px', borderRadius: '5px', border: 'none', marginBottom: '10px' }}
+                                rows="4"
+                                value={secondRuleInput}
+                                onChange={(e) => setSecondRuleInput(e.target.value)}
+                            />
+                        </label>
+                        <button style={buttonStyle} onClick={() => createRule(secondRuleInput, 'second')}>Create Second Rule</button>
+                    </div>
+
+                    <div style={formElementStyle}>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'white' }}>
+                            Evaluate Rule:
+                        </label>
+                        <div>
+                            <input type="text" placeholder="Age" onChange={(e) => handleInputChange('age', e.target.value)} />
+                            <input type="text" placeholder="Department" onChange={(e) => handleInputChange('department', e.target.value)} />
+                            <input type="text" placeholder="Salary" onChange={(e) => handleInputChange('salary', e.target.value)} />
+                            <input type="text" placeholder="Experience" onChange={(e) => handleInputChange('experience', e.target.value)} />
+                            <button style={buttonStyle} onClick={handleEvaluateRule}>Evaluate Rule</button>
+                        </div>
+                    </div>
+
+                    {evaluationResult && <div style={formElementStyle}>Evaluation Result: {evaluationResult}</div>}
+                </div>
+
+                {/* Right column for showing created rules */}
+                <div style={rightColumnStyle}>
+                    <h2 style={{ color: 'white' }}>Created Rules</h2>
+                    <div style={ruleListStyle}>
+                        {createdRules.map((rule, index) => (
+                            <div key={rule.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: '#444', borderRadius: '5px', marginBottom: '10px' }}>
+                                <span style={{ color: 'white' }}>{rule.rule_string}</span>
+                                <div>
+                                    <button style={{ ...buttonStyle, backgroundColor: '#28a745' }} onClick={() => handleEditRule(rule)}>Edit</button>
+                                    <button style={{ ...buttonStyle, backgroundColor: '#dc3545' }} onClick={() => handleDeleteRule(rule.id)}>Delete</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Modification Container */}
+            <div style={formElementStyle}>
+                <h2 style={{ color: 'white' }}>Edit Rule</h2>
+                {editRule && (
+                    <>
+                        <label>
+                            Rule:
+                            <textarea
+                                style={{ width: '100%', padding: '10px', borderRadius: '5px', border: 'none', marginBottom: '10px' }}
+                                rows="4"
+                                value={ruleInput}
+                                onChange={(e) => setRuleInput(e.target.value)}
+                            />
+                        </label>
+                        <button style={buttonStyle} onClick={handleUpdateRule}>Update Rule</button>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default App;
