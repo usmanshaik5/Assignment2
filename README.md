@@ -125,3 +125,58 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Add sections for any additional features or configurations specific to your implementation.
   
 Once you have your project details for **Application 2**, I can help create a similar template for that as well!
+
+
+
+Prerequisites
+Make sure you have the following installed on your system:
+
+Node.js
+XAMPP (for MySQL)
+Installation Instructions
+Clone the Repository: Clone your repository to your local machine.
+
+git clone <your-github-repo-url>
+cd <your-repo-directory>
+Install Backend Dependencies: Navigate to your backend directory (if you have a separate one) and install the required packages.
+
+npm install express body-parser cors mysql2
+Dependencies Explained:
+express: Web framework for Node.js to create server applications.
+body-parser: Middleware for parsing incoming request bodies.
+cors: Middleware to enable CORS (Cross-Origin Resource Sharing).
+mysql2: MySQL client for Node.js.
+Setup the Database:
+
+Start XAMPP and launch the phpMyAdmin.
+Create a new database (e.g., rule_engine).
+Define the necessary schema for your rules. You can use the following SQL commands as an example:
+
+CREATE TABLE rules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  rule_string TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+Install Frontend Dependencies: If you are using React for the frontend, navigate to your React application directory and run:
+
+npx create-react-app my-rule-engine-ui
+cd my-rule-engine-ui
+npm install axios react-router-dom
+Dependencies Explained:
+axios: Promise-based HTTP client for the browser and Node.js.
+react-router-dom: DOM bindings for React Router, enabling navigation in your application.
+Run the Applications:
+
+Start your backend server (assuming you have an index.js or server.js file):
+
+node index.js
+In another terminal, navigate to your React app directory and start the React application:
+
+npm start
+Using the Application
+Access the backend API on http://localhost:<backend-port>/api/rules to manage rules.
+Use the frontend at http://localhost:3000 to interact with the rule engine.
+Bonus Considerations
+Implement error handling for invalid inputs.
+Create tests for the functionalities of rule creation and evaluation.
+
